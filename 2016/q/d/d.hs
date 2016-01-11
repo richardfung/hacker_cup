@@ -26,9 +26,9 @@ combine (x:xs) =
         restArray = listArray (0, length rest - 1) $ map snd rest
         xArray = listArray (0, length x) $ (0,0):(map snd x)
         max' = snd (bounds restArray) + snd (bounds xArray)
-        wayToN f n = minimum $ map (\i -> f (xArray ! i) + f (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray) ]
-        wayToNLast = wayToN snd
-        wayToNNotLast = wayToN fst
+        wayToN f g n = minimum $ map (\i -> f (xArray ! i) + g (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray) ]
+        wayToNLast n = min (wayToN fst snd n) (wayToN snd fst n)
+        wayToNNotLast = wayToN fst fst
     in map (\i -> (i, (wayToNNotLast i, wayToNLast i))) [0..max']
 
 count :: Node -> [(Int, (Int, Int))]

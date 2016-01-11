@@ -3,8 +3,10 @@ import Control.Monad (forM, forM_)
 import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
+import Data.Maybe (fromJust)
 import Data.STRef
 import Debug.Trace
+import Text.Printf
 
 data Node = Node (Array Char Node) Bool | Empty deriving Show
 data STNode s = STNode (STArray s Char (STNode s)) (STRef s Bool) | STEmpty
@@ -14,31 +16,28 @@ main = do
     forM_ [1..t] $ \i -> do
         [n,k] <- map read <$> words <$> getLine :: IO [Int]
         words' <- forM [1..n] $ \_ -> getLine
-        let node = genNode words' 
-        print node
-        print $ count node 
+        printf "Case #%d: %d\n" i (fromJust $ lookup k $ count $ genNode words')
 
-combine :: [[(Int, (Int, Int))]] -> [(Int, (Int, Int))]
-combine [] = [(0,(0,0))]
-combine [x] = (0,(0,0)):x
+combine :: [[(Int, Int)]] -> [(Int, Int)]
+combine [] = [(0,0)]
+combine [x] = (0,0):x
 combine (x:xs) =
     let rest = combine xs
-        restArray = listArray (0, length rest - 1) $ map snd rest
-        xArray = listArray (0, length x) $ (0,0):(map snd x)
+        restArray = array (0, length rest-1) rest
+        xArray = array (0, length x) $ (0,0):x
         max' = snd (bounds restArray) + snd (bounds xArray)
-        wayToN f g n = minimum $ map (\i -> f (xArray ! i) + g (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray) ]
-        wayToNLast n = min (wayToN fst snd n) (wayToN snd fst n)
-        wayToNNotLast = wayToN fst fst
-    in map (\i -> (i, (wayToNNotLast i, wayToNLast i))) [0..max']
+        wayToN n = minimum $ map (\i -> (xArray ! i) + (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray)]
+    in map (\i -> (i, wayToN i)) [0..max']
 
-count :: Node -> [(Int, (Int, Int))]
+count :: Node -> [(Int, Int)]
 count Empty = []
 count (Node children isWord) =
-    let childCounts = map count $ elems children
-        incrementedChildCount = map (\c -> map (\(i,(x,y)) -> (i,(x+2,y+1))) c) childCounts
-        combinedChildren = combine incrementedChildCount
-    in if isWord then (1,(1,1)):combinedChildren
-       else combinedChildren
+    let childCounts = map count $ filter (\c -> case c of Empty -> False
+                                                          otherwise -> True) $ elems children
+        incrementedChildCounts = map (\c -> map (\(i,j) -> (i,j+2)) c) childCounts
+        allCounts = if isWord then [(1,1)]:incrementedChildCounts
+                    else incrementedChildCounts 
+    in tail $ combine allCounts
 
 genNode :: [String] -> Node
 genNode ss = runST $ do

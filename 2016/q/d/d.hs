@@ -1,14 +1,19 @@
+import Control.Applicative ((<$>))
 import Control.Monad (forM, forM_)
 import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
 import Data.STRef
 
-data Node = Node (Array Char Node) Bool | Empty
+data Node = Node (Array Char Node) Bool | Empty deriving Show
 data STNode s = STNode (STArray s Char (STNode s)) (STRef s Bool) | STEmpty
 
 main = do
-    print "Why is this so hard?"
+    t <- readLn :: IO Int
+    forM_ [1..t] $ \i -> do
+        [n,k] <- map read <$> words <$> getLine :: IO [Int]
+        words' <- forM [1..n] $ \_ -> getLine
+        print $ genNode words' 
 
 genNode :: [String] -> Node
 genNode ss = runST $ do

@@ -13,7 +13,31 @@ main = do
     forM_ [1..t] $ \i -> do
         [n,k] <- map read <$> words <$> getLine :: IO [Int]
         words' <- forM [1..n] $ \_ -> getLine
-        print $ genNode words' 
+        let node = genNode words' 
+        print node
+        print $ count node 
+
+combine :: [[(Int, (Int, Int))]] -> [(Int, (Int, Int))]
+combine [] = [(0,(0,0))]
+combine [x] = x
+combine (x:xs) =
+    let rest = combine xs
+        restArray = listArray (0, length rest - 1) $ map snd rest
+        xArray = listArray (0, length rest) $ (0,0):(map snd x)
+        max' = snd (bounds restArray) + snd (bounds xArray)
+        wayToN f n = minimum $ map (\i -> f (xArray ! i) + f (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray) ]
+        wayToNLast = wayToN snd
+        wayToNNotLast = wayToN fst
+    in map (\i -> (i, (wayToNNotLast i, wayToNLast i))) [0..max']
+
+count :: Node -> [(Int, (Int, Int))]
+count Empty = []
+count (Node children isWord) =
+    let childCounts = map count $ elems children
+        incrementedChildCount = map (\c -> map (\(i,(x,y)) -> (i,(x+2,y+1))) c) childCounts
+        combinedChildren = combine incrementedChildCount
+    in if isWord then (1,(1,1)):combinedChildren
+       else combinedChildren
 
 genNode :: [String] -> Node
 genNode ss = runST $ do

@@ -1,3 +1,4 @@
+import Control.Monad (forM, forM_)
 import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
@@ -8,6 +9,13 @@ data STNode s = STNode (STArray s Char (STNode s)) (STRef s Bool) | STEmpty
 
 main = do
     print "Why is this so hard?"
+
+genNode :: [String] -> Node
+genNode ss = runST $ do
+    stNode <- newSTNode
+    forM_ ss $ \s -> do
+        genSTNode s stNode
+    stNodeToNode stNode
 
 genSTNode :: String -> STNode s -> ST s ()
 genSTNode [] _ = return ()
@@ -26,6 +34,18 @@ genSTNode (c:cs) (STNode stArray _) = do
                                 genSTNode cs child
                   otherwise -> genSTNode cs child
 
-stNodeToNode :: STNode s -> Node
-stNodeToNode STEmpty = Empty
-stNodeToNode (STNode stArray stBool) = 
+newSTNode :: ST s (STNode s)
+newSTNode = do
+    retArray <- newArray ('a', 'z') STEmpty
+    retBool <- newSTRef False
+    return $ STNode retArray retBool
+
+stNodeToNode :: STNode s -> ST s Node
+stNodeToNode STEmpty = return Empty
+stNodeToNode (STNode stArray stBool) = do
+    bs <- getBounds stArray
+    children <- forM (range bs) $ \i -> do
+                    c <- readArray stArray i
+                    stNodeToNode c
+    retBool <- readSTRef stBool
+    return $ Node (listArray bs children) retBool

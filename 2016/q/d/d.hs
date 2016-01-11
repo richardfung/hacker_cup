@@ -4,6 +4,7 @@ import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
 import Data.STRef
+import Debug.Trace
 
 data Node = Node (Array Char Node) Bool | Empty deriving Show
 data STNode s = STNode (STArray s Char (STNode s)) (STRef s Bool) | STEmpty
@@ -19,11 +20,11 @@ main = do
 
 combine :: [[(Int, (Int, Int))]] -> [(Int, (Int, Int))]
 combine [] = [(0,(0,0))]
-combine [x] = x
+combine [x] = (0,(0,0)):x
 combine (x:xs) =
     let rest = combine xs
         restArray = listArray (0, length rest - 1) $ map snd rest
-        xArray = listArray (0, length rest) $ (0,0):(map snd x)
+        xArray = listArray (0, length x) $ (0,0):(map snd x)
         max' = snd (bounds restArray) + snd (bounds xArray)
         wayToN f n = minimum $ map (\i -> f (xArray ! i) + f (restArray ! (n-i))) [max 0 (n-(snd $ bounds restArray))..min n (snd $ bounds xArray) ]
         wayToNLast = wayToN snd
@@ -78,3 +79,5 @@ stNodeToNode (STNode stArray stBool) = do
                     stNodeToNode c
     retBool <- readSTRef stBool
     return $ Node (listArray bs children) retBool
+
+traceShowId x = traceShow x x
